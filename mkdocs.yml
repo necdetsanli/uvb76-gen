@@ -1,0 +1,15 @@
+site_name: uvb76-gen
+theme:
+  name: material
+
+nav:
+  - Home: index.md
+  - License: license.md
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
