@@ -1,0 +1,16 @@
+# .dockerignore
+.git
+.gitignore
+.dockerignore
+.devcontainer
+.venv
+__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
+dist
+build
+.env
+README.md
+docs/
+tests/  # Prod imajında testlere gerek yoksa
