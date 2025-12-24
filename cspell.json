@@ -1,0 +1,26 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "dictionaries": [],
+  "words": [
+    "uvb",
+    "uvb76",
+    "xorshift",
+    "vigenere",
+    "mkdocs",
+    "mkdocstrings",
+    "typer",
+    "pylance",
+    "ruff"
+  ],
+  "ignorePaths": [
+    ".venv/**",
+    ".mypy_cache/**",
+    ".ruff_cache/**",
+    ".pytest_cache/**",
+    "dist/**",
+    "build/**",
+    "uv.lock",
+    "out/**"
+  ]
+}

@@ -1,0 +1,49 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# --- Environments ---
+.venv/
+venv/
+env/
+
+# --- Tooling & Caches ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# --- Distribution / Builds ---
+dist/
+build/
+site/
+out/
+*.egg-info/
+develop-eggs/
+eggs/
+lib64/
+parts/
+sdist/
+var/
+
+# --- VS Code ---
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# --- Environment Variables ---
+.env
+.env.*
+!.env.example
+
+# --- OS Files ---
+.DS_Store
+Thumbs.db

@@ -1,0 +1,15 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "astral-sh.ruff",
+    "editorconfig.editorconfig",
+    "tamasfe.even-better-toml",
+    "njpwerner.autodocstring",
+    "streetsidesoftware.code-spell-checker",
+    "yzhang.markdown-all-in-one",
+    "mechatroner.rainbow-csv",
+    "eamodio.gitlens",
+    "usernamehw.errorlens"
+  ]
+}

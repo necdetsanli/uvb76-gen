@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "uvb76-gen: gen",
+      "type": "python",
+      "request": "launch",
+      "module": "uvb76_gen.cli",
+      "args": [
+        "gen",
+        "--text",
+        "If you solve this, email me.",
+        "--key",
+        "BUZZERKEY",
+        "--callsign",
+        "UVB76"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    }
+  ]
+}
