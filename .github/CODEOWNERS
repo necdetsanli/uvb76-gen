@@ -1,0 +1,27 @@
+# Default owners for everything
+* @necdetsanli
+
+# Core package
+/src/ @necdetsanli
+
+# Tests
+/tests/ @necdetsanli
+
+# Documentation
+/docs/ @necdetsanli
+/mkdocs.yml @necdetsanli
+
+# Tooling & repo config
+/.devcontainer/ @necdetsanli
+/.vscode/ @necdetsanli
+/pyproject.toml @necdetsanli
+/Makefile @necdetsanli
+/.pre-commit-config.yaml @necdetsanli
+/.editorconfig @necdetsanli
+/.gitattributes @necdetsanli
+/cspell.json @necdetsanli
+/scripts @necdetsanli
+/assets @necdetsanli
+
+# CI
+/.github/workflows/ @necdetsanli
