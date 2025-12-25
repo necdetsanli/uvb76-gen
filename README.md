@@ -87,7 +87,7 @@ The mask key is used only for the deterministic offsets that scramble the 5-digi
 Clone the repository:
 
 ```bash
-git clone https://www.github.com/necdetsanli/uvb76-gen
+git clone https://www.github.com/necdetsanli/uvb76-gen.git
 cd uvb76-gen
 ```
 
