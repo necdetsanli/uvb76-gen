@@ -415,3 +415,183 @@ def render_uvb_mix(voice_wav: Path, out_path: Path, cfg: AudioRenderConfig) -> N
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:
         raise Uvb76GenError(f"FFmpeg failed:\n{res.stderr}")
+
+
+def _buzzer_harm_expr(f0_hz: float) -> str:
+    """Return the harmonic-stack expression used by the synthetic buzzer."""
+    f0 = float(f0_hz)
+    return (
+        f"0.64*sin(2*PI*{2 * f0:.4f}*t)+"
+        f"1.00*sin(2*PI*{3 * f0:.4f}*t)+"
+        f"0.80*sin(2*PI*{4 * f0:.4f}*t)+"
+        f"0.50*sin(2*PI*{5 * f0:.4f}*t)+"
+        f"0.42*sin(2*PI*{6 * f0:.4f}*t)+"
+        f"0.26*sin(2*PI*{7 * f0:.4f}*t)+"
+        f"0.28*sin(2*PI*{8 * f0:.4f}*t)+"
+        f"0.32*sin(2*PI*{9 * f0:.4f}*t)"
+    )
+
+
+def render_background_buzzer(
+    out_path: Path, cfg: AudioRenderConfig, duration_seconds: float = 120.0
+) -> None:
+    """Render a static + buzzer background track (no voice).
+
+    The buzzer is gated for the full duration:
+    1s ON, 1s OFF, repeating for the entire timeline.
+    """
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    sr = int(cfg.sample_rate)
+    total_d = float(duration_seconds)
+    if total_d <= 0:
+        raise Uvb76GenError("duration_seconds must be > 0.")
+
+    # 1s on, 1s off => period=2, on=1
+    gate_expr = "if(lt(mod(t,2),1),1,0)"
+
+    harm = _buzzer_harm_expr(cfg.buzzer_f0_hz)
+
+    noise_chain = ",".join(
+        [
+            f"anoisesrc=d={total_d}:c=pink:r={sr}:a={float(cfg.noise_gain)}",
+            "highpass=f=150",
+            "lowpass=f=4000",
+        ]
+    )
+
+    buzzer_chain = ",".join(
+        [
+            f"aevalsrc='{harm}':s={sr}:d={total_d}",
+            f"volume='({gate_expr})*{float(cfg.buzzer_gain)}':eval=frame",
+            f"volume={float(cfg.buzzer_drive)}",
+            (
+                "asoftclip="
+                f"type=hard:threshold={float(cfg.buzzer_softclip_threshold)}:"
+                f"output={float(cfg.buzzer_softclip_output)}:oversample=4"
+            ),
+            f"acrusher=bits={int(cfg.buzzer_crush_bits)}:mix=1.0",
+            f"volume={float(cfg.buzzer_post_gain)}",
+            "highpass=f=80",
+            "lowpass=f=1800",
+        ]
+    )
+
+    filter_complex = ";".join(
+        [
+            f"{noise_chain}[n]",
+            f"{buzzer_chain}[b]",
+            "[n][b]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.98[out]",
+        ]
+    )
+
+    cmd = [
+        "ffmpeg",
+        "-y",
+        # Dummy input (we generate everything in filter_complex)
+        "-f",
+        "lavfi",
+        "-i",
+        f"anullsrc=r={sr}:cl=mono",
+        "-filter_complex",
+        filter_complex,
+        "-map",
+        "[out]",
+    ]
+
+    if cfg.mono is True:
+        cmd.extend(["-ac", "1"])
+    cmd.extend(["-ar", str(sr), str(out_path)])
+
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        raise Uvb76GenError(f"FFmpeg failed:\n{res.stderr}")
+
+
+def render_static_voice(
+    voice_wav: Path,
+    out_path: Path,
+    cfg: AudioRenderConfig,
+    intro_seconds: float = 3.0,
+    outro_seconds: float = 3.0,
+) -> None:
+    """Render a static + voice track (no buzzer).
+
+    Timeline:
+      intro_seconds  static-only +
+      voice_len      (voice + static) +
+      outro_seconds  static-only
+    """
+    if voice_wav.exists() is False:
+        raise Uvb76GenError(f"Voice file not found: {voice_wav}")
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    sr = int(cfg.sample_rate)
+    voice_len = _probe_duration_seconds(voice_wav)
+
+    intro = float(intro_seconds)
+    outro = float(outro_seconds)
+    if intro < 0 or outro < 0:
+        raise Uvb76GenError("intro_seconds and outro_seconds must be >= 0.")
+
+    total_d = intro + voice_len + outro
+
+    voice_chain = ",".join(
+        [
+            f"atrim=0:{voice_len}",
+            "asetpts=N/SR/TB",
+            f"aresample={sr}:resampler=soxr",
+            "highpass=f=200",
+            "lowpass=f=3000",
+            "acompressor=threshold=-18dB:ratio=3:attack=10:release=120",
+            f"volume={float(cfg.voice_gain)}",
+            (
+                "asoftclip="
+                f"type=tanh:threshold={float(cfg.voice_softclip_threshold)}:"
+                f"output={float(cfg.voice_softclip_output)}:oversample=4"
+            ),
+            f"tremolo=f={float(cfg.voice_tremolo_freq_hz)}:d={float(cfg.voice_tremolo_depth)}",
+            (
+                "aecho="
+                f"{float(cfg.voice_reverb_in_gain)}:{float(cfg.voice_reverb_out_gain)}:"
+                f"{cfg.voice_reverb_delays_ms}:{cfg.voice_reverb_decays}"
+            ),
+            f"adelay={int(round(intro * 1000))}|{int(round(intro * 1000))}",
+        ]
+    )
+
+    noise_chain = ",".join(
+        [
+            f"anoisesrc=d={total_d}:c=pink:r={sr}:a={float(cfg.noise_gain)}",
+            "highpass=f=150",
+            "lowpass=f=4000",
+        ]
+    )
+
+    filter_complex = ";".join(
+        [
+            f"[0:a]{voice_chain}[v]",
+            f"{noise_chain}[n]",
+            "[n][v]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.98[out]",
+        ]
+    )
+
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        str(voice_wav),
+        "-filter_complex",
+        filter_complex,
+        "-map",
+        "[out]",
+    ]
+
+    if cfg.mono is True:
+        cmd.extend(["-ac", "1"])
+    cmd.extend(["-ar", str(sr), str(out_path)])
+
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        raise Uvb76GenError(f"FFmpeg failed:\n{res.stderr}")

@@ -35,7 +35,12 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 
-from .audio import AudioRenderConfig, render_uvb_mix
+from .audio import (
+    AudioRenderConfig,
+    render_background_buzzer,
+    render_static_voice,
+    render_uvb_mix,
+)
 from .broadcast import BroadcastConfig, make_script_ru
 from .crypto import CipherConfig, decrypt_from_groups, encrypt_to_groups, parse_groups_text
 from .errors import Uvb76GenError
@@ -249,6 +254,48 @@ def render_audio(
             cfg=AudioRenderConfig(duration_seconds=duration),
         )
         console.print(Panel.fit(f"Wrote:\n- {out}", title="render-audio"))
+    except Uvb76GenError as exc:
+        console.print(f"[bold red]Error:[/bold red] {exc}")
+        raise typer.Exit(code=1) from exc
+
+
+@app.command("render-background")
+def render_background(
+    out: Path = typer.Option(
+        Path("out/background.mp3"), "--out", help="Output audio path (wav/mp3)."
+    ),
+    duration: float = typer.Option(120.0, "--duration", help="Total duration in seconds."),
+) -> None:
+    """Render a static + buzzer background track (no voice)."""
+    try:
+        render_background_buzzer(
+            out_path=out, cfg=AudioRenderConfig(), duration_seconds=float(duration)
+        )
+        console.print(Panel.fit(f"Wrote:\n- {out}", title="render-background"))
+    except Uvb76GenError as exc:
+        console.print(f"[bold red]Error:[/bold red] {exc}")
+        raise typer.Exit(code=1) from exc
+
+
+@app.command("render-static-voice")
+def render_static_voice_cmd(
+    voice_wav: Path = typer.Option(..., "--voice-wav", help="Voice audio input (wav/mp3/etc)."),
+    out: Path = typer.Option(
+        Path("out/static_voice.mp3"), "--out", help="Output audio path (wav/mp3)."
+    ),
+    intro: float = typer.Option(3.0, "--intro", help="Static-only intro seconds."),
+    outro: float = typer.Option(3.0, "--outro", help="Static-only outro seconds."),
+) -> None:
+    """Render a static + voice track (no buzzer)."""
+    try:
+        render_static_voice(
+            voice_wav=voice_wav,
+            out_path=out,
+            cfg=AudioRenderConfig(),
+            intro_seconds=float(intro),
+            outro_seconds=float(outro),
+        )
+        console.print(Panel.fit(f"Wrote:\n- {out}", title="render-static-voice"))
     except Uvb76GenError as exc:
         console.print(f"[bold red]Error:[/bold red] {exc}")
         raise typer.Exit(code=1) from exc
